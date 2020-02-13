@@ -3,7 +3,7 @@
 # 2048
 
 new() {
-    # init a brand new cells
+    # init a brand new cell
     while :; do
         ((
             x = RANDOM % 4,
