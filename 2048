@@ -1,99 +1,146 @@
 #!/usr/bin/env bash
 #
-# 2048 but in bash
+# 2048
 
 new() {
-    # generate a brand new cell
+    # init a brand new cells
     while :; do
-        ((x = RANDOM % 4, y = RANDOM % 4))
-        ((g[$x,$y])) || break
+        ((
+            x = RANDOM % 4,
+            y = RANDOM % 4
+        ))
+
+        ((game[$x $y])) || break
     done
 
-    g[$x,$y]=2
+    ((game[$x $y] = 2))
 }
 
 check() {
-    c=
+    # check if the game is finished
+    ((cpt = 0))
 
-    for i in {0..3},{0..3}; do
-        ((g[$i] && c++, g[$i] == 2048)) && exit
-    done
+    for i in {0..3}; {
+        for j in {0..3}; {
+            ((
+                game[$i $j] || cpt++,
+                game[$i $j] == 8192
+            )) &&
+                exit
+        }
+    }
 
-    ((c == 16)) && exit
+    ((cpt)) || exit
 }
 
 display() {
-    printf '\e[H'
+    out='\e[H'
 
-    for i in {0..3},{0..3}; do
-        c=
+    for i in {0..3}; {
+        for j in {0..3}; {
+            # pick the right color
+            ((t = game[$i $j]))
 
-        for a in {4,10}{0..5}; do
-            ((c == g[$i])) && # get the right color
-                printf '\e[%sm%4s\e[m' "$a" "${g[$i]}"
+            printf -v out '%s\e[%sm%4s\e[m' \
+                "$out" "${colors[t]}" "$t"
+        }
 
-            ((c = c ? c * 2 : 2))
-        done
+        out+='\n'
+    }
 
-        ((${i#??} == 3)) && printf '\n'
-    done
+    printf '%b' "$out"
 }
 
 template() {
     case $1 in
-        h) a='0..3'; b='k = j + 1; k <  4; k++'; c='$i,$j'; d='$i,$k';;
-        j) a='3..0'; b='k = j - 1; k >= 0; k--'; c='$j,$i'; d='$k,$i';;
-        k) a='0..3'; b='k = j + 1; k <  4; k++'; c='$j,$i'; d='$k,$i';;
-        l) a='3..0'; b='k = j - 1; k >= 0; k--'; c='$i,$j'; d='$i,$k';;
+        h) a='0..3'; b='k = j + 1; k <  4; k++'; c='$i $j'; d='$i $k';;
+        j) a='3..0'; b='k = j - 1; k >= 0; k--'; c='$j $i'; d='$k $i';;
+        k) a='0..3'; b='k = j + 1; k <  4; k++'; c='$j $i'; d='$k $i';;
+        l) a='3..0'; b='k = j - 1; k >= 0; k--'; c='$i $j'; d='$i $k';;
     esac
 
     eval "
     push_$1() {
-        for i in {0..3}; do
+        for i in {0..3}; {
             # merge tiles
-            for j in {$a}; do
-                for (($b)) do
-                    ((g[$c] == g[$d])) && { ((g[$c] += g[$d], g[$d] = 0)); break; }
-                    ((g[$d])) && break
-                done
-            done
+            for j in {$a}; {
+                for (($b)) {
+                    ((game[$c] == game[$d])) && {
+                        ((
+                            game[$c] += game[$d],
+                            game[$d] = 0
+                        ))
+
+                        break
+                    }
+
+                    ((game[$d])) && break
+                }
+            }
 
             # push tiles
-            for j in {$a}; do
-                ((g[$c])) ||
-                    for (($b)) do
-                        ((g[$d])) && { ((g[$c] = g[$d], g[$d] = 0)); break; }
-                    done
-            done
-        done
+            for j in {$a}; {
+                ((game[$c])) ||
+                    for (($b)) {
+                        ((game[$d])) && {
+                            ((
+                                game[$c] = game[$d],
+                                game[$d] = 0
+                            ))
+
+                            break
+                        }
+                    } 
+            }
+        }
     }"
 }
 
-printf '\e[2J\e[?25l'
-trap $'printf \e[?25h' EXIT
+# init colors
+((t = 1))
 
-declare -A g t
-
-# init array
-for i in {0..3},{0..3}; do
-    g[$i]=0
-done; new
+for i in {4,10}{1..6}; {
+    ((colors[t *= 2] = i))
+}
 
 # init functions
-for key in h j k l; do
+for key in h j k l; {
     template "$key"
-done
+}
+
+# init array
+declare -A game copy
+
+for i in {0..3}; {
+    for j in {0..3}; {
+        ((game[$i $j] = 0))
+    }
+}
+
+new
+
+# hide ui
+printf '\e[2J\e[?25l'
+trap 'printf "\e[?25h\n"' EXIT
 
 while display; read -rsn 1 key; do
-    # save current state
-    for i in "${!g[@]}"; do
-        t[$i]=${g[$i]}
-    done
+    # save state
+    for i in "${!game[@]}"; {
+        ((copy[$i] = game[$i]))
+    }
 
-    [[ $key =~ [hjkl] ]] && { "push_$key"; check; }
+    [[ $key =~ [hjkl] ]] && {
+        push_"$key"
 
-    # compare with new state
-    for i in "${!g[@]}"; do
-        ((t[$i] != g[$i])) && { new; break; }
-    done
+        check
+    }
+
+    # compare state
+    for i in "${!game[@]}"; {
+        ((copy[$i] != game[$i])) && {
+            new
+
+            break
+        }
+    }
 done
