@@ -1,7 +1,11 @@
-a simple 2048 implementation
+2048
+====
+    a simple 2048 implementation
 
-usage :
-$ ./2048 # plays with hjkl
+usage
+-----
+    $ src/2048 # plays with hjkl
 
-depends on :
-* bash
+depends on
+----------
+    * bash
