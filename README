@@ -1,1 +1,7 @@
-a simple 2048 written in bash
+a simple 2048 implementation
+
+usage :
+$ ./2048 # plays with hjkl
+
+depends on :
+* bash
