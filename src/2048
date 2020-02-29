@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 2048 - a 2048 implementation
+# 2048 - 2048 implementation
 
 new() {
     # init a brand new cell
