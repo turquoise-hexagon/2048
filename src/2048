@@ -4,14 +4,14 @@
 
 new() {
     # init a brand new cell
-    while :; do
+    for ((;;)) {
         ((
             x = RANDOM % 4,
             y = RANDOM % 4
         ))
 
         ((game[$x $y])) || break
-    done
+    }
 
     ((game[$x $y] = 2))
 }
