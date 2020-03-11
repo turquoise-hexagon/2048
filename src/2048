@@ -18,19 +18,19 @@ new() {
 
 check() {
     # check if the game is finished
-    ((cpt = 0))
+    ((cnt = 0))
 
     for i in {0..3}; {
         for j in {0..3}; {
             ((
-                game[$i $j] || cpt++,
+                game[$i $j] || cnt++,
                 game[$i $j] == 8192
             )) &&
                 exit
         }
     }
 
-    ((cpt)) || exit
+    ((cnt)) || exit
 }
 
 display() {
