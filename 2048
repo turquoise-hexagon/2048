@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+#
+# 2048 - 2048 implementation
+
+new() {
+    local x
+    local y
+
+    # init a brand new cell
+    for ((;;)) {
+        ((
+            x = RANDOM % 4,
+            y = RANDOM % 4
+        ))
+
+        ((game[$x $y] == 0)) &&
+            break
+    }
+
+    ((game[$x $y] = 2))
+}
+
+check() {
+    local cnt
+    local i
+    local j
+
+    # check if the game is finished
+    ((cnt = 0))
+
+    for ((i = 0; i < 4; ++i)) {
+        for ((j = 0; j < 4; ++j)) {
+            ((
+                game[$i $j] == 0 && ++cnt,
+                game[$i $j] == 8192
+            )) &&
+                exit
+        }
+    }
+
+    ((cnt == 0)) &&
+        exit
+}
+
+display() {
+    local out
+    local i
+    local j
+    local t
+
+    out='\e[H'
+
+    for ((i = 0; i < 4; ++i)) {
+        for ((j = 0; j < 4; ++j)) {
+            # pick the right color
+            ((t = game[$i $j]))
+
+            printf -v out '%s\e[%sm%4s\e[m' \
+                "$out" "${colors[t]}" "$t"
+        }
+
+        out+='\n'
+    }
+
+    printf '%b' "$out"
+}
+
+template() {
+    eval "
+    push_$1() {
+        local i
+        local j
+        local k
+
+        for ((i = 0; i < 4; ++i)) {
+            # merge
+            for (($2)); {
+                for (($3)) {
+                    ((game[$4] == game[$5])) && {
+                        ((
+                            game[$4] += game[$5],
+                            game[$5] = 0
+                        ))
+
+                        break
+                    }
+
+                    ((game[$5] == 0)) || break
+                }
+            }
+
+            # push
+            for (($2)); {
+                ((game[$4] == 0)) &&
+                    for (($3)) {
+                        ((game[$5])) && {
+                            ((
+                                game[$4] = game[$5],
+                                game[$5] = 0
+                            ))
+
+                            break
+                        }
+                    }
+            }
+        }
+    }"
+}
+
+init_colors() {
+    local i
+    local t
+
+    ((t = 1))
+    
+    for i in {4,10}{1..6}; {
+        ((colors[t *= 2] = i))
+    }
+}
+
+init_functions() {
+    template h 'j = 0; j <  4; ++j' 'k = j + 1; k <  4; ++k' '$i $j' '$i $k'
+    template k 'j = 0; j <  4; ++j' 'k = j + 1; k <  4; ++k' '$j $i' '$k $i'
+    template j 'j = 3; j >= 0; --j' 'k = j - 1; k >= 0; --k' '$j $i' '$k $i'
+    template l 'j = 3; j >= 0; --j' 'k = j - 1; k >= 0; --k' '$i $j' '$i $k'
+}
+
+init_game() {
+    local i
+    local j
+
+    for ((i = 0; i < 4; ++i)) {
+        for ((j = 0; j < 4; ++j)) {
+            ((game[$i $j] = 0))
+        }
+    }
+
+    new
+}
+
+init_terminal() {
+    # \e[2J   => clear terminal
+    # \e[?25l => hide cursor
+    printf '\e[2J\e[?25l'
+
+    # \e[?25h => show cursor
+    trap 'printf "\e[?25h\n"' EXIT
+}
+
+main() {
+    local key
+    local i
+
+    while display; read -r -s -n 1 key; do
+        # save state
+        for i in "${!game[@]}"; {
+            ((copy[$i] = game[$i]))
+        }
+
+        [[ $key =~ [hjkl] ]] && {
+            push_"$key"
+
+            check
+        }
+
+        # compare state
+        for i in "${!game[@]}"; {
+            ((copy[$i] != game[$i])) && {
+                new
+
+                break
+            }
+        }
+    done
+}
+
+declare -A game copy
+
+init_colors
+init_functions
+init_game
+init_terminal
+
+main

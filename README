@@ -4,7 +4,7 @@
 
 usage
 -----
-    $ src/2048 # plays with hjkl
+    $ ./2048 # plays with hjkl
 
 depends on
 ----------
