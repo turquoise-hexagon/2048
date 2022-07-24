@@ -112,7 +112,7 @@ init_colors() {
     local t
 
     ((t = 1))
-    
+
     for i in {4,10}{1..6}; {
         ((colors[t *= 2] = i))
     }
